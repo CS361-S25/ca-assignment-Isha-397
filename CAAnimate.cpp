@@ -5,7 +5,6 @@ emp::web::Document doc{"target"};
 
 class CAAnimator : public emp::web::Animate {
 
-    // grid width and height
     const int num_h_boxes = 10;
     const int num_w_boxes = 15;
     const double RECT_SIDE = 25;
@@ -16,25 +15,28 @@ class CAAnimator : public emp::web::Animate {
     //2D vectors to hold information about the current and next state of cells
     std::vector<std::vector<int> > cells;
     std::vector<std::vector<int>> next_cells;
+    std::vector<std::vector<double>> fade_grid;
+
             
 
-    // where we'll draw
+    // Canvas to draw on
     emp::web::Canvas canvas{width, height, "canvas"};
 
-    int frame_count = 0;
 
 public:
 
+    /**
+     * @brief Constructor sets up canvas and initial glider pattern.
+     */
+
     CAAnimator() {
-        // shove canvas into the div
-        // along with some control buttons
         doc << canvas;
         doc << GetToggleButton("Toggle");
         doc << GetStepButton("Step");
 
-        //fill the vectors with 0 to start
         cells.resize(num_w_boxes, std::vector<int>(num_h_boxes, 0));
         next_cells.resize(num_w_boxes, std::vector<int>(num_h_boxes, 0));
+        fade_grid.resize(num_w_boxes, std::vector<double>(num_h_boxes, 0.0));
 
 
         //Add an initial glider pattern
@@ -42,7 +44,11 @@ public:
 
     }
 
-    // Add a classic "glider" pattern to the grid at a specific offset.
+    /**
+     * @brief Places a glider pattern at the given offset.
+     * @param x_offset X offset for the pattern
+     * @param y_offset Y offset for the pattern
+     */
     void AddGlider(int x_offset, int y_offset) {
         cells[(x_offset + 1) % num_w_boxes][(y_offset + 0) % num_h_boxes] = 1;
         cells[(x_offset + 2) % num_w_boxes][(y_offset + 1) % num_h_boxes] = 1;
@@ -51,12 +57,14 @@ public:
         cells[(x_offset + 2) % num_w_boxes][(y_offset + 2) % num_h_boxes] = 1;
     }
 
-    // Count the number of alive neighbors around a cell (with toroidal wrapping)
+    /**
+     * @brief Counts alive neighbors with toroidal wrapping.
+     */
     int GetNeighborValue(int x, int y) {
         int count = 0;
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
-                if (dx == 0 && dy == 0) continue; // Skip the cell itself
+                if (dx == 0 && dy == 0) continue; 
                 int nx = (x + dx + num_w_boxes) % num_w_boxes;
                 int ny = (y + dy + num_h_boxes) % num_h_boxes;
                 count += cells[nx][ny];
@@ -65,11 +73,21 @@ public:
         return count;
     }
 
-    // Apply Game of Life rules to update cell states
+    /**
+     * @brief Updates the cell grid using Game of Life rules and smooth transitions.
+     */
     void UpdateCells() {
+        // auto new_cells = cells;  // Copy current state
         for (int x = 0; x < num_w_boxes; ++x) {
             for (int y = 0; y < num_h_boxes; ++y) {
                 int neighbors = GetNeighborValue(x, y);
+                if (cells[x][y] > 0.5) {
+                    // If the cell is alive, fade toward white (1.0)
+                    fade_grid[x][y] = std::min(fade_grid[x][y] + 0.1, 1.0);
+                } else {
+                    // If the cell is dead, fade toward black (0.0)
+                    fade_grid[x][y] = std::max(fade_grid[x][y] - 0.05, 0.0);
+                }
 
                 // Live cell rules
                 if (cells[x][y] == 1) {
@@ -85,15 +103,32 @@ public:
         cells = next_cells;
     }
 
-    // Draw the frame and update the CA grid
+    /*
+    * Draw and update the CA each frame.
+    */
     void DoFrame() override {
         canvas.Clear();
 
         // Draw each cell on the canvas
         for (int x = 0; x < num_w_boxes; x++){
              for (int y = 0; y < num_h_boxes; y++) {
-                    std::string fill_color = cells[x][y] ? "black" : "white";
-                    canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, fill_color, "black");
+                // double value = next_cells[x][y];
+                if (cells[x][y] > 0.5) {
+                    // Red for active (glider) cells
+                    canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorRGB(255, 0, 0), "black");
+                } else {
+                    // Greyscale for fading background
+                    double val = fade_grid[x][y];
+                    // emp::ColorHSV grey(0, 0, val); // HSV with no hue/saturation = greyscale
+                    canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorHSV(0, 0, val), "black");
+                }
+                // // If the cell is "alive", draw it in Red, else greyscale
+                // if (cells[x][y] == 1) {
+                //     canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorRGB(255, 0, 0), "black");
+                // } else {
+                //     canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorHSV(0, 0, value), "black");
+                // }
+
             }
         }
 
@@ -102,10 +137,15 @@ public:
     }
 };
 
+
 // Create an instance of the animator
 CAAnimator animator;
 
+
+/*
+* Have animator call DoFrame once to start
+*/
 int main() {
-    //Have animator call DoFrame once to start
     animator.Step();
 }
+
