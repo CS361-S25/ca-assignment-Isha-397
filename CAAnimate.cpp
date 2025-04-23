@@ -77,7 +77,6 @@ public:
      * @brief Updates the cell grid using Game of Life rules and smooth transitions.
      */
     void UpdateCells() {
-        // auto new_cells = cells;  // Copy current state
         for (int x = 0; x < num_w_boxes; ++x) {
             for (int y = 0; y < num_h_boxes; ++y) {
                 int neighbors = GetNeighborValue(x, y);
@@ -112,22 +111,14 @@ public:
         // Draw each cell on the canvas
         for (int x = 0; x < num_w_boxes; x++){
              for (int y = 0; y < num_h_boxes; y++) {
-                // double value = next_cells[x][y];
                 if (cells[x][y] > 0.5) {
                     // Red for active (glider) cells
                     canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorRGB(255, 0, 0), "black");
                 } else {
                     // Greyscale for fading background
                     double val = fade_grid[x][y];
-                    // emp::ColorHSV grey(0, 0, val); // HSV with no hue/saturation = greyscale
                     canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorHSV(0, 0, val), "black");
                 }
-                // // If the cell is "alive", draw it in Red, else greyscale
-                // if (cells[x][y] == 1) {
-                //     canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorRGB(255, 0, 0), "black");
-                // } else {
-                //     canvas.Rect(x * RECT_SIDE, y * RECT_SIDE, RECT_SIDE, RECT_SIDE, emp::ColorHSV(0, 0, value), "black");
-                // }
 
             }
         }
